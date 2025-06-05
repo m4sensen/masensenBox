@@ -1,18 +1,13 @@
 #!/bin/bash
-
-# Ask for TOTP code
+read -sp "Enter LUKS passphrase: " pass
+echo
 read -p "Enter 2FA code: " code
 
-# Your TOTP secret (example: export from Google Authenticator or keep in a secret file)
-SECRET="YOUR_TOTP_SECRET_HERE"
+expected_code=$(oathtool --totp -b "SECRET_KEY")
 
-# Validate using oathtool
-VALID=$(oathtool --totp -b "$SECRET")
-
-if [[ "$code" == "$VALID" ]]; then
-    echo "[+] 2FA validated. Unlocking drive..."
-    sudo cryptsetup luksOpen /dev/vda3 secure_crypt --key-file /root/.secure_2fa_key
+if [ "$code" == "$expected_code" ]; then
+    echo -n "$pass$code" | cryptsetup luksOpen /dev/sda3 secure_volume
 else
-    echo "[!] Invalid code. Access denied."
+    echo "Invalid 2FA code"
     exit 1
 fi
